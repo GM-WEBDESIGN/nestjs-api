@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upload Images</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      ul {
+        display: grid;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        grid-template-rows: auto;
+        grid-template-columns: 1fr 1fr;
+      }
+      li {
+        display: flex;
+        flex: 1 auto;
+        position: relative;
+        overflow: hidden;
+        filter: brightness(1);
+        transition: all 0.3s ease;
+      }
+      h2 {
+        position: absolute;
+        left: 50%;
+        top: 111%;
+        transform: translate(-50%, -50%);
+        z-index: 2;
+        margin: 0;
+        background: rgba(255, 255, 255, 0.4);
+        padding: 4px;
+        color: #000000;
+        transition: all 0.3s ease;
+      }
+      img {
+        width: 100% !important;
+        height: auto;
+        position: relative;
+        max-width: 100%;
+      }
+      li:hover h2 {
+        top: 50%;
+      }
+      ul:hover li {
+        filter: brightness(1);
+      }
+      ul:hover li:not(:hover) {
+        filter: brightness(0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="uploader">
+      <input type="file" name="upload" id="upload" />
+      <button id="uploadFile">UPLOAD</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js"></script>
+    <script>
+      let btn = document.getElementById('uploadFile');
+      let images = [];
+      getAll();
+
+      btn.addEventListener('click', uploadFile);
+      function uploadFile(e) {
+        e.preventDefault();
+        let upload = document.getElementById('upload');
+        let file = upload.files[0];
+        let formData = new FormData();
+        formData.append('file', file, file.name);
+        formData.append('name', file.name);
+        axios
+          .post('/image', formData)
+          .then(res => {
+            console.log(res);
+            images.push(res.data);
+            addImage(res.data.name, res.data.url, res.data._id);
+          })
+          .catch(err => console.log('Error upload file => ', err));
+      }
+      function getAll() {
+        axios
+          .get('/image')
+          .then(res => {
+            let data = res.data;
+            images = data;
+            initView();
+          })
+          .catch(err => console.log('Error get images => ', err));
+      }
+      function initView() {
+        let body = document.body;
+        let ul = document.createElement('ul');
+        images.forEach(image => {
+          let li = document.createElement('li');
+          let h2 = document.createElement('h2');
+          h2.innerText = image.name;
+          let img = document.createElement('img');
+          img.src = image.url;
+          img.style.width = '200px';
+          img.style.height = '100%';
+          li.appendChild(h2);
+          li.appendChild(img);
+          li.id = image._id;
+          li.addEventListener('click', e => {
+            e.preventDefault();
+            deleteImage(image._id);
+          });
+          ul.appendChild(li);
+        });
+        body.appendChild(ul);
+      }
+      function addImage(name, url, id) {
+        let ul = document.querySelector('ul');
+        let li = document.createElement('li');
+        let h2 = document.createElement('h2');
+        h2.innerText = name;
+        li.appendChild(h2);
+        let img = document.createElement('img');
+        img.src = url;
+        img.style.width = '200px';
+        img.style.height = '100%';
+        li.appendChild(img);
+        li.id = id;
+        li.addEventListener('click', e => {
+          e.preventDefault();
+          deleteImage(id);
+        });
+        ul.appendChild(li);
+      }
+
+      function deleteImage(id) {
+        console.log('Delete image ' + id);
+
+        axios
+          .delete(`/image/${id}`)
+          .then(res => {
+            console.log('Deleted from API => ', res);
+            images = images.filter(image => image._id !== id);
+            console.log(images);
+            let elem = document.getElementById(id);
+            let ul = document.querySelector('ul');
+            ul.removeChild(elem);
+          })
+          .catch(err => console.log('Error delete image => ', err));
+      }
+    </script>
+  </body>
+</html>
